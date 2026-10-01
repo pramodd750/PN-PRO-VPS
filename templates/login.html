@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}LOGIN — PN PRO VPS{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="card">
+    <h1 class="auth-title">WELCOME BACK</h1>
+    <p class="auth-sub">SIGN IN TO ACCESS YOUR PANEL</p>
+    {% if error %}<div class="alert alert-err">⚠ {{ error }}</div>{% endif %}
+    <form method="post">
+      <div class="form-row">
+        <label>USERNAME</label>
+        <input class="input" name="username" placeholder="ENTER USERNAME" required autofocus>
+      </div>
+      <div class="form-row">
+        <label>PASSWORD</label>
+        <input class="input" name="password" type="password" placeholder="ENTER PASSWORD" required>
+      </div>
+      <button class="btn-primary" style="width:100%;justify-content:center;margin-top:10px">SIGN IN →</button>
+    </form>
+    <p style="text-align:center;margin-top:26px;color:var(--txt-4);font-size:.68rem;letter-spacing:.2em">
+      NEW HERE? <a href="{{ url_for('pricing_page') }}" style="color:var(--gold)">VIEW PLANS</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
