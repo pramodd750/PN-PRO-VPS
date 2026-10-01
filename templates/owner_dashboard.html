@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}OWNER DASHBOARD — PN PRO VPS{% endblock %}
+
+{% block content %}
+<div class="dash-head">
+  <div class="dash-title">OWNER PANEL <span>FULL CONTROL · USERS · PLANS · BILLING</span></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="users">USERS</button>
+  <button class="tab" data-tab="create">CREATE USER</button>
+  <button class="tab" data-tab="pricing">PRICING</button>
+</div>
+
+<div class="tab-panel active" id="panel-users">
+  <div class="card" style="padding:24px 18px">
+    <h2 style="padding:0 16px">ACTIVE USERS ({{ users|length }})</h2>
+    <p class="card-sub" style="padding:0 16px">MANAGE EXPIRY · SHARE AUTO-LOGIN LINKS</p>
+    {% if users %}
+    <div class="owner-table-wrap">
+    <table class="owner-table">
+      <thead>
+        <tr>
+          <th>USERNAME</th><th>STATUS</th><th>UPTIME</th><th>EXPIRES</th><th>AUTO-LOGIN</th><th>ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for uname, info in users.items() %}
+        {% set exp = info.expires_at or 0 %}
+        {% set expired = exp > 0 and now > exp %}
+        {% set is_lifetime = (exp == 0) %}
+        {% set start_ts = procs_info.get(uname, 0) %}
+        <tr>
+          <td><strong>{{ uname }}</strong></td>
+          <td>
+            {% if expired %}<span class="pill pill-warn">EXPIRED</span>
+            {% elif is_lifetime %}<span class="pill pill-ok">LIFETIME</span>
+            {% else %}<span class="pill pill-ok"><span class="dot"></span>ACTIVE</span>{% endif %}
+          </td>
+          <td>
+            {% if start_ts > 0 %}
+              <span class="pill pill-gold">⏱ <span class="uptime-text" data-start="{{ start_ts }}">—</span></span>
+            {% else %}
+              <span style="color:var(--txt-4);letter-spacing:.2em;font-size:.68rem">—</span>
+            {% endif %}
+          </td>
+          <td>{% if is_lifetime %}NEVER{% else %}<span data-ts="{{ exp }}" class="ts"></span>{% endif %}</td>
+          <td>
+            <div class="cell-actions">
+              <button type="button" class="btn-sm btn-info" onclick="copyLink('{{ base_url }}/auto/{{ info.token }}', this)">📋 COPY</button>
+              <a class="btn-sm btn-ok" href="{{ base_url }}/auto/{{ info.token }}" target="_blank" rel="noopener" style="text-decoration:none">▶ OPEN</a>
+            </div>
+          </td>
+          <td>
+            <div class="cell-actions">
+              {% if not is_lifetime %}
+                <form method="post" action="{{ url_for('owner_extend', username=uname) }}">
+                  <input class="input hours-input" name="hours" value="24">
+                  <button class="btn-sm btn-info">+EXT</button>
+                </form>
+              {% endif %}
+              <form method="post" action="{{ url_for('owner_delete', username=uname) }}"
+                    onsubmit="return confirm('DELETE {{ uname }} AND ALL FILES?')">
+                <button class="btn-sm btn-err">DEL</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p style="color:var(--txt-4);padding:24px 16px;letter-spacing:.2em;font-size:.74rem">NO USERS YET · CREATE ONE FROM THE "CREATE USER" TAB</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="tab-panel" id="panel-create">
+  <div class="card" style="max-width:600px">
+    <h2>CREATE NEW USER</h2>
+    <p class="card-sub">SET DURATION IN HOURS — 0 = LIFETIME · 24 = 1 DAY · 168 = 7 DAYS · 720 = 30 DAYS</p>
+    <form method="post" action="{{ url_for('owner_create') }}">
+      <div class="form-row"><label>USERNAME</label>
+        <input class="input" name="username" placeholder="E.G. CLIENT01" required></div>
+      <div class="form-row"><label>PASSWORD</label>
+        <input class="input" name="password" placeholder="STRONG PASSWORD" required></div>
+      <div class="form-row"><label>DURATION (HOURS)</label>
+        <input class="input" name="hours" type="number" value="24" min="0" step="1"></div>
+      <button class="btn-primary">CREATE USER ✦</button>
+    </form>
+  </div>
+</div>
+
+<div class="tab-panel" id="panel-pricing">
+  <div class="card">
+    <h2>EDIT PRICING PLANS</h2>
+    <p class="card-sub">THESE PLANS SHOW ON THE PUBLIC /PRICING PAGE</p>
+    <form method="post" action="{{ url_for('owner_pricing') }}">
+      <div class="grid-2" style="margin-bottom:16px">
+        <div class="form-row"><label>CURRENCY SYMBOL</label>
+          <input class="input" name="currency" value="{{ pricing.currency }}"></div>
+        <div class="form-row"><label>CONTACT INFO</label>
+          <input class="input" name="contact" value="{{ pricing.contact }}"></div>
+      </div>
+      {% for p in pricing.plans %}
+      <div style="border:1px solid var(--line);padding:20px;margin-bottom:14px;position:relative">
+        <span style="position:absolute;top:-10px;left:16px;background:var(--panel);padding:0 10px;color:var(--gold);font-size:.62rem;letter-spacing:.24em;font-weight:700">PLAN {{ loop.index }}</span>
+        <div class="grid-2" style="gap:14px">
+          <div class="form-row"><label>PLAN NAME</label><input class="input" name="p_name" value="{{ p.name }}"></div>
+          <div class="form-row"><label>DURATION</label><input class="input" name="p_duration" value="{{ p.duration }}"></div>
+          <div class="form-row"><label>PRICE</label><input class="input" name="p_price" value="{{ p.price }}"></div>
+          <div class="form-row"><label>FEATURES (COMMA-SEPARATED)</label><input class="input" name="p_features" value="{{ p.features }}"></div>
+        </div>
+      </div>
+      {% endfor %}
+      <div id="new-plans"></div>
+      <button type="button" class="btn-ghost-lg" onclick="addPlan()" style="margin-right:12px">+ ADD PLAN</button>
+      <button class="btn-primary">SAVE PLANS ✦</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
+    document.querySelectorAll('.tab-panel').forEach(function(x){ x.classList.remove('active'); });
+    t.classList.add('active');
+    document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+  });
+});
+document.querySelectorAll('.ts').forEach(function(el){
+  el.textContent = new Date(parseFloat(el.dataset.ts)*1000).toLocaleString().toUpperCase();
+});
+function addPlan(){
+  var wrap = document.getElementById('new-plans');
+  var div = document.createElement('div');
+  div.style.cssText = 'border:1px dashed var(--line-hi);padding:20px;margin-bottom:14px;position:relative';
+  div.innerHTML = '<span style="position:absolute;top:-10px;left:16px;background:var(--panel);padding:0 10px;color:var(--gold);font-size:.62rem;letter-spacing:.24em;font-weight:700">NEW PLAN</span>'
+    + '<div class="grid-2" style="gap:14px">'
+    + '<div class="form-row"><label>PLAN NAME</label><input class="input" name="p_name" placeholder="NEW PLAN"></div>'
+    + '<div class="form-row"><label>DURATION</label><input class="input" name="p_duration" placeholder="30 DAYS"></div>'
+    + '<div class="form-row"><label>PRICE</label><input class="input" name="p_price" placeholder="499"></div>'
+    + '<div class="form-row"><label>FEATURES</label><input class="input" name="p_features" placeholder="feature1, feature2"></div>'
+    + '</div>';
+  wrap.appendChild(div);
+}
+</script>
+{% endblock %}

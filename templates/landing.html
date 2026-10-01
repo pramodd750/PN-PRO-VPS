@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}PN PRO VPS — HOST PYTHON, NODE & SHELL 24/7{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <span class="badge"><span class="badge-dot"></span> PREMIUM VPS HOSTING </span>
+  <h1>
+    RUN YOUR <span class="grad">PYTHON</span>, <span class="grad">NODE.JS</span>
+    <span class="line2">&amp; SHELL SCRIPTS — FOREVER</span>
+  </h1>
+  <p class="hero-sub">A PRECISION-BUILT CONTROL PANEL WITH LIVE LOGS, MODULE INSTALLER, AND INSTANT DEPLOYMENT — ALL FROM YOUR BROWSER.</p>
+  <div class="hero-cta">
+    <a href="{{ url_for('pricing_page') }}" class="btn-primary">VIEW PRICING</a>
+    <a href="{{ url_for('login') }}" class="btn-ghost-lg">CLIENT LOGIN →</a>
+  </div>
+  <div class="hero-stats">
+    <div><strong>99.9%</strong><span>UPTIME SLA</span></div>
+    <div><strong>200MB</strong><span>UPLOAD LIMIT</span></div>
+    <div><strong>24/7</strong><span>AUTO RESTART</span></div>
+    <div><strong>1-CLICK</strong><span>DEPLOY</span></div>
+  </div>
+</section>
+
+<h2 class="section-title">EVERYTHING YOU NEED TO <span class="grad">SHIP FAST</span></h2>
+<p class="section-sub">BUILT FOR DEVELOPERS WHO VALUE SPEED AND CONTROL</p>
+
+<div class="feature-grid">
+  <div class="feature-card"><span class="fc-num">/ 01</span><div class="fc-icon">◈</div>
+    <h3>MULTI-RUNTIME</h3>
+    <p>Run .py, .js, and .sh files with a single click. Python, Node.js and Bash supported.</p></div>
+  <div class="feature-card"><span class="fc-num">/ 02</span><div class="fc-icon">◉</div>
+    <h3>LIVE LOGS</h3>
+    <p>Real-time stdout/stderr streaming so you always know exactly what your script is doing.</p></div>
+  <div class="feature-card"><span class="fc-num">/ 03</span><div class="fc-icon">◆</div>
+    <h3>MODULE INSTALLER</h3>
+    <p>Install Python packages with pip or Node modules with npm — right from the panel.</p></div>
+  <div class="feature-card"><span class="fc-num">/ 04</span><div class="fc-icon">⬢</div>
+    <h3>PER-USER ISOLATION</h3>
+    <p>Every client gets their own sandboxed directory, tokens, and process slot. No cross-access.</p></div>
+  <div class="feature-card"><span class="fc-num">/ 05</span><div class="fc-icon">⬡</div>
+    <h3>INSTANT DEPLOY</h3>
+    <p>Upload, start, restart, or stop with one tap. Zero downtime workflow.</p></div>
+  <div class="feature-card"><span class="fc-num">/ 06</span><div class="fc-icon">◐</div>
+    <h3>OWNER CONTROL</h3>
+    <p>Create users, set expiry, extend time, and edit pricing plans in real time.</p></div>
+</div>
+
+<div class="marquee">
+  <div class="marquee-track">
+    <span>POWERED BY PYTHON</span><span>NODE.JS READY</span><span>BASH SUPPORT</span>
+    <span>LIVE STREAMING LOGS</span><span>AUTO RESTART</span><span>SECURE SANDBOX</span>
+    <span>POWERED BY PYTHON</span><span>NODE.JS READY</span><span>BASH SUPPORT</span>
+    <span>LIVE STREAMING LOGS</span><span>AUTO RESTART</span><span>SECURE SANDBOX</span>
+  </div>
+</div>
+{% endblock %}

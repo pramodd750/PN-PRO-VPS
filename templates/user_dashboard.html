@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}MY SERVER — PN PRO VPS{% endblock %}
+
+{% block content %}
+<div class="dash-head">
+  <div class="dash-title">
+    HEY, <span class="grad">{{ username }}</span>
+    <span style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">
+      {% if running %}
+        <span class="pill pill-ok"><span class="dot"></span>RUNNING · {{ running_file }}</span>
+        <span class="pill pill-gold">⏱ UPTIME <span class="uptime-text" data-start="{{ started_at }}">—</span></span>
+      {% else %}
+        <span class="pill pill-off">● STOPPED</span>
+      {% endif %}
+    </span>
+  </div>
+  <div style="text-align:right;color:var(--txt-4);font-size:.68rem;letter-spacing:.22em">
+    EXPIRES: <strong style="color:var(--gold)" id="expires-at" data-ts="{{ expires_at }}">—</strong>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="files">FILES</button>
+  <button class="tab" data-tab="control">CONTROL</button>
+  <button class="tab" data-tab="logs">LIVE LOGS</button>
+  <button class="tab" data-tab="install">INSTALL</button>
+</div>
+
+<div class="tab-panel active" id="panel-files">
+  <div class="card" style="margin-bottom:22px">
+    <h2>UPLOAD FILES</h2>
+    <p class="card-sub">SUPPORTED: .PY · .JS · .MJS · .CJS · .SH — MAX 200MB</p>
+    <form method="post" action="{{ url_for('upload') }}" enctype="multipart/form-data">
+      <div class="form-row"><input class="input" type="file" name="files" multiple required></div>
+      <button class="btn-primary">UPLOAD ↑</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2>YOUR FILES ({{ files|length }})</h2>
+    <p class="card-sub">CLICK RUN TO START · ONE FILE RUNS AT A TIME</p>
+    {% if files %}
+    <ul class="file-list">
+      {% for f in files %}
+      <li>
+        <span class="fname">▸ {{ f }}</span>
+        <div class="file-actions">
+          <button class="btn-sm btn-ok" onclick="startFile('{{ f }}')">▶ RUN</button>
+          <a class="btn-sm btn-info" href="{{ url_for('file_view', name=f) }}" target="_blank" style="text-decoration:none">VIEW</a>
+          <form method="post" action="{{ url_for('file_delete', name=f) }}" style="display:inline" onsubmit="return confirm('Delete {{ f }}?')">
+            <button class="btn-sm btn-err">DEL</button>
+          </form>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="color:var(--txt-4);padding:24px 0;letter-spacing:.2em;font-size:.74rem">NO FILES YET · UPLOAD YOUR FIRST SCRIPT ABOVE</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="tab-panel" id="panel-control">
+  <div class="card">
+    <h2>PROCESS CONTROL</h2>
+    <p class="card-sub">START · STOP · RESTART YOUR RUNNING SCRIPT</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <button class="btn-sm btn-info" onclick="ctl('restart')">↻ RESTART</button>
+      <button class="btn-sm btn-warn" onclick="ctl('stop')">■ STOP</button>
+      <button class="btn-sm btn-err"  onclick="ctl('delete')">✕ KILL &amp; CLEAR</button>
+    </div>
+    <div style="margin-top:30px">
+      <strong style="letter-spacing:.22em;font-size:.68rem;color:var(--txt-4)">STATUS:</strong>
+      <span id="status-text" style="color:var(--gold);margin-left:10px;letter-spacing:.1em;font-size:.82rem">LOADING…</span>
+    </div>
+    <div style="margin-top:14px">
+      <strong style="letter-spacing:.22em;font-size:.68rem;color:var(--txt-4)">UPTIME:</strong>
+      <span id="uptime-control" style="color:var(--gold);margin-left:10px;letter-spacing:.1em;font-size:.82rem">—</span>
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="panel-logs">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+      <h2 style="margin:0">LIVE OUTPUT</h2>
+      <span class="pill" id="log-status">—</span>
+    </div>
+    <div class="terminal" id="term">WAITING FOR LOGS…</div>
+    <div style="margin-top:16px;color:var(--txt-4);font-size:.66rem;letter-spacing:.22em">AUTO-REFRESH 1.5S · LAST 2000 LINES KEPT</div>
+  </div>
+</div>
+
+<div class="tab-panel" id="panel-install">
+  <div class="card">
+    <h2>INSTALL MODULES</h2>
+    <p class="card-sub">ALLOWED: <code>pip install &lt;pkg&gt;</code> OR <code>npm install &lt;pkg&gt;</code></p>
+    <form id="install-form" onsubmit="return doInstall(event)">
+      <div class="form-row"><input class="input" id="install-cmd" placeholder="pip install requests" required></div>
+      <button class="btn-primary">INSTALL ▶</button>
+    </form>
+    <div class="terminal" id="install-term" style="margin-top:20px;height:280px;color:#f5d76e">INSTALL LOG WILL APPEAR HERE…</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
+    document.querySelectorAll('.tab-panel').forEach(function(x){ x.classList.remove('active'); });
+    t.classList.add('active');
+    document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+  });
+});
+
+var expEl = document.getElementById('expires-at');
+if(expEl){
+  var ts = parseFloat(expEl.dataset.ts);
+  expEl.textContent = ts > 0 ? new Date(ts*1000).toLocaleString().toUpperCase() : 'LIFETIME';
+}
+
+async function startFile(name){
+  var r = await fetch('{{ url_for("server_start") }}', {method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:'file=' + encodeURIComponent(name)});
+  var j = await r.json();
+  toast(j.msg.toUpperCase(), j.ok ? 'ok' : 'err');
+  setTimeout(function(){ location.reload(); }, 700);
+}
+
+async function ctl(action){
+  if(action==='stop' && !confirm('STOP THE RUNNING PROCESS?')) return;
+  if(action==='delete' && !confirm('KILL PROCESS AND CLEAR LOGS?')) return;
+  var map = {
+    restart: '{{ url_for("server_restart") }}',
+    stop: '{{ url_for("server_stop") }}',
+    delete: '{{ url_for("server_delete") }}'
+  };
+  var rr = await fetch(map[action], {method:'POST'});
+  var j = await rr.json();
+  toast((j.msg || 'done').toUpperCase(), j.ok ? 'ok' : 'err');
+  setTimeout(function(){ location.reload(); }, 700);
+}
+
+async function doInstall(e){
+  e.preventDefault();
+  var cmd = document.getElementById('install-cmd').value;
+  var r = await fetch('{{ url_for("install") }}', {method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:'command=' + encodeURIComponent(cmd)});
+  var j = await r.json();
+  toast(j.msg.toUpperCase(), j.ok ? 'ok' : 'err');
+  return false;
+}
+
+var term = document.getElementById('term');
+var installTerm = document.getElementById('install-term');
+var logStatus = document.getElementById('log-status');
+var statusText = document.getElementById('status-text');
+var uptimeCtl = document.getElementById('uptime-control');
+var lastStarted = 0;
+
+async function refresh(){
+  try{
+    var r = await fetch('{{ url_for("logs_api") }}');
+    var j = await r.json();
+    logStatus.textContent = j.running ? '● RUNNING' : '● STOPPED';
+    logStatus.className = 'pill ' + (j.running ? 'pill-ok' : 'pill-off');
+    if(statusText) statusText.textContent = j.running ? ('RUNNING: ' + j.file) : 'STOPPED';
+    lastStarted = j.started_at || 0;
+    if(term){ term.textContent = j.logs.length ? j.logs.join('\n') : 'No logs yet.'; term.scrollTop = term.scrollHeight; }
+    if(installTerm){
+      installTerm.textContent = j.install.length ? j.install.join('\n') : 'Install log will appear here…';
+      installTerm.scrollTop = installTerm.scrollHeight;
+    }
+  } catch(e) {}
+}
+
+function tickUptime(){
+  if(!uptimeCtl) return;
+  if(lastStarted > 0){
+    var now = Math.floor(Date.now()/1000);
+    uptimeCtl.textContent = fmtUptime(now - lastStarted);
+  } else {
+    uptimeCtl.textContent = '—';
+  }
+}
+
+refresh();
+setInterval(refresh, 1500);
+setInterval(tickUptime, 1000);
+</script>
+{% endblock %}

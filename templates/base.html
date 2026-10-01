@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#000000">
+<title>{% block title %}PN PRO VPS{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="icon" href="https://i.ibb.co/S7m9fNpV/3408358dd236.jpg">
+</head>
+<body>
+<div class="bg-lux"></div>
+<div class="bg-scanlines"></div>
+<div class="corner-frame"></div>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="{{ url_for('landing') }}" class="brand">
+      <span class="brand-mark">
+        <img src="https://i.ibb.co/S7m9fNpV/3408358dd236.jpg" alt="PN PRO VPS">
+      </span>
+      <span class="brand-text">PN PRO VPS</span>
+    </a>
+    <div class="nav-links">
+      <span class="nav-uptime" title="Server Uptime">
+        <span class="nav-uptime-dot"></span>
+        <span class="nav-uptime-label">UPTIME</span>
+        <span class="nav-uptime-time" id="nav-uptime">—</span>
+      </span>
+      {% if session.get('role') == 'owner' %}
+        <a href="{{ url_for('owner_dashboard') }}">DASHBOARD</a>
+        <a href="{{ url_for('logout') }}" class="btn-ghost">LOGOUT</a>
+      {% elif session.get('role') == 'user' %}
+        <a href="{{ url_for('user_dashboard') }}">MY SERVER</a>
+        <a href="{{ url_for('logout') }}" class="btn-ghost">LOGOUT</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+
+<main class="main">
+{% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  © 2026 <strong>PN PRO VPS</strong> — BUILT FOR SHAPPNO / PN
+</footer>
+
+<script>
+/* ============ CORE HELPERS ============ */
+function toast(msg, type){
+  type = type || 'info';
+  var el = document.createElement('div');
+  el.className = 'toast toast-' + type;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  requestAnimationFrame(function(){ el.classList.add('show'); });
+  setTimeout(function(){
+    el.classList.remove('show');
+    setTimeout(function(){ el.remove(); }, 400);
+  }, 2800);
+}
+
+function copyLink(text, btn){
+  var done = function(){
+    var orig = btn.getAttribute('data-orig') || btn.textContent;
+    btn.setAttribute('data-orig', orig);
+    btn.textContent = '✓ COPIED';
+    setTimeout(function(){ btn.textContent = orig; }, 1500);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(function(){
+      var ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); }catch(e){}
+      document.body.removeChild(ta); done();
+    });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta); done();
+  }
+}
+
+/* ============ UPTIME FORMATTER ============ */
+function fmtUptime(sec){
+  sec = Math.max(0, Math.floor(sec));
+  var d = Math.floor(sec/86400); sec %= 86400;
+  var h = Math.floor(sec/3600);  sec %= 3600;
+  var m = Math.floor(sec/60);    sec %= 60;
+  var s = sec;
+  var pad = function(n){ return String(n).padStart(2,'0'); };
+  if(d > 0) return d + 'D ' + pad(h) + ':' + pad(m) + ':' + pad(s);
+  return pad(h) + ':' + pad(m) + ':' + pad(s);
+}
+
+/* ============ SERVER UPTIME ============ */
+(function(){
+  var BOOT_TS = {{ BOOT_TS }};
+  var navEl = document.getElementById('nav-uptime');
+  function tick(){
+    if(!navEl) return;
+    var now = Math.floor(Date.now() / 1000);
+    navEl.textContent = fmtUptime(now - BOOT_TS);
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+
+/* ============ PROCESS UPTIME ============ */
+(function(){
+  function updateAll(){
+    var now = Math.floor(Date.now()/1000);
+    document.querySelectorAll('.uptime-text').forEach(function(el){
+      var start = parseInt(el.getAttribute('data-start') || '0', 10);
+      if(!start || start <= 0){ el.textContent = '—'; return; }
+      el.textContent = fmtUptime(now - start);
+    });
+  }
+  updateAll();
+  setInterval(updateAll, 1000);
+})();
+
+/* ============ CARD SPOTLIGHT ============ */
+document.addEventListener('mousemove', function(e){
+  var el = e.target.closest('.feature-card');
+  if(!el) return;
+  var r = el.getBoundingClientRect();
+  el.style.setProperty('--mx', ((e.clientX-r.left)/r.width*100) + '%');
+  el.style.setProperty('--my', ((e.clientY-r.top)/r.height*100) + '%');
+});
+
+/* ============ SCROLL REVEAL ============ */
+(function(){
+  var els = document.querySelectorAll('.card, .feature-card, .price-card, .hero-stats > div, .section-title');
+  els.forEach(function(el){ el.classList.add('reveal'); });
+  if(!('IntersectionObserver' in window)){
+    els.forEach(function(el){ el.classList.add('in'); });
+    return;
+  }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+    });
+  }, {threshold:0.08, rootMargin:'0px 0px -40px 0px'});
+  els.forEach(function(el){ io.observe(el); });
+})();
+
+/* ============ ANIMATED COUNTERS ============ */
+(function(){
+  var els = document.querySelectorAll('.hero-stats strong');
+  els.forEach(function(el){
+    var raw = el.textContent.trim();
+    var m = raw.match(/([\d.]+)/);
+    if(!m) return;
+    var num = parseFloat(m[1]);
+    var prefix = raw.slice(0, m.index);
+    var suffix = raw.slice(m.index + m[1].length);
+    var isFloat = m[1].indexOf('.') !== -1;
+    var start = performance.now(); var dur = 1400;
+    function tick(t){
+      var p = Math.min((t-start)/dur, 1);
+      var e = 1 - Math.pow(1-p, 3);
+      var v = num * e;
+      el.textContent = prefix + (isFloat ? v.toFixed(1) : Math.round(v)) + suffix;
+      if(p < 1) requestAnimationFrame(tick);
+      else el.textContent = raw;
+    }
+    requestAnimationFrame(tick);
+  });
+})();
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
