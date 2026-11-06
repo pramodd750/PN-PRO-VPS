@@ -29,7 +29,7 @@ PRICING_FILE = DATA_DIR / "pricing.json"
 BOOT_TS = int(time.time())
 
 OWNER_USER = os.environ.get("OWNER_USER", "PNPRO")
-OWNER_PASS = os.environ.get("OWNER_PASS", "7722")
+OWNER_PASS = os.environ.get("OWNER_PASS", "9644")
 
 DEFAULT_PRICING = {
     "currency": "₹",
